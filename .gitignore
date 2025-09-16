@@ -2,3 +2,7 @@
 **/*.xtc
 
 **/*.png
+
+**/*.dry_nvt_trim.xtc_offsets.npz
+
+**/*.dry_nvt_trim.xtc_offsets.lock
