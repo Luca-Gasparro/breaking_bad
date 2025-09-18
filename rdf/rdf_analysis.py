@@ -6,7 +6,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utility import api_com_extractor, load_api_coms
+from utility import api_com_extractor, load_api_coms, dummy_universe
 
 api_com_extractor(
     topology_file="dry_nvt.tpr",
@@ -16,3 +16,5 @@ api_com_extractor(
     start_time=2000,
 )
 api_com_array = load_api_coms("test.npz")
+
+fake_uni = dummy_universe(api_com_array=api_com_array)

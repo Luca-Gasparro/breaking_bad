@@ -2,6 +2,7 @@
 import os
 import numpy as np
 import MDAnalysis as mda
+from MDAnalysis.coordinates.memory import MemoryReader
 
 
 def api_com_extractor(
@@ -47,3 +48,23 @@ def load_api_coms(api_com_file):
     # Load the dta stored in the COM file
     com_file_data = np.load(api_com_file, allow_pickle=True)
     return com_file_data["api_coms"]
+
+
+def dummy_universe(api_com_array):
+    """Creates a minimal dummy Universe for the API COMS. This
+    allows radial distribution functions to be calculated with MDAnalysis"""
+
+    # Extract the number of atoms
+    _, number_of_atoms, _ = api_com_array.shape
+
+    # Make the emtpy universe and attach the trajectory with
+    # the MemoryReader function
+    dummy_universe = mda.Universe.empty(
+        n_atoms=number_of_atoms,
+        n_residues=number_of_atoms,
+        atom_resindex=np.arange(number_of_atoms),
+        trajectory=True,
+    )
+    dummy_universe.trajectory = MemoryReader(api_com_array)
+
+    return dummy_universe
