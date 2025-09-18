@@ -15,6 +15,14 @@ api_com_extractor(
     output_filename="test",
     start_time=2000,
 )
-api_com_array = load_api_coms("test.npz")
+api_com_array, box_lengths = load_api_coms("test.npz")
 
-fake_uni = dummy_universe(api_com_array=api_com_array)
+fake_uni = dummy_universe(api_com_file="test.npz")
+print(fake_uni.dimensions)
+
+rdf = InterRDF(
+    fake_uni.atoms, fake_uni.atoms, nbins=200, range=(0, 40), exclusion_block=(1, 1)
+)
+rdf.run()
+plt.plot(rdf.results.bins, rdf.results.rdf)
+plt.savefig("test.png", dpi=300)

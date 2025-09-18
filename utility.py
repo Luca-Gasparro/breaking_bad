@@ -30,15 +30,17 @@ def api_com_extractor(
     api_resids = sorted(set(api.resids))
     number_of_api = len(api_resids)
 
-    # COM extraction
+    # COM and box length per frame extraction
     api_coms = np.zeros((number_of_frames, number_of_api, 3))
-    for i, _ in enumerate(traj.trajectory[start_frame:]):
+    box_lengths = np.zeros((number_of_frames, 3))
+    for i, ts in enumerate(traj.trajectory[start_frame:]):
+        box_lengths[i] = ts.dimensions[:3]
         for j, residue in enumerate(api_resids):
             mol = traj.select_atoms(f"resname {api_residue_name} and resid {residue}")
             api_coms[i, j] = mol.center_of_mass()
 
     # Save the results to a file to avoid repeat computation
-    np.savez_compressed(output_filename, api_coms=api_coms)
+    np.savez_compressed(output_filename, api_coms=api_coms, box_lengths=box_lengths)
     return
 
 
@@ -47,15 +49,23 @@ def load_api_coms(api_com_file):
 
     # Load the dta stored in the COM file
     com_file_data = np.load(api_com_file, allow_pickle=True)
-    return com_file_data["api_coms"]
+    return com_file_data["api_coms"], com_file_data["box_lengths"]
 
 
-def dummy_universe(api_com_array):
+def dummy_universe(api_com_file):
     """Creates a minimal dummy Universe for the API COMS. This
     allows radial distribution functions to be calculated with MDAnalysis"""
 
-    # Extract the number of atoms
-    _, number_of_atoms, _ = api_com_array.shape
+    api_com_array, box_lengths = load_api_coms(api_com_file=api_com_file)
+    # Extract the number of frames and atoms
+    number_of_frames, number_of_atoms, _ = api_com_array.shape
+
+    # Construct the box dimensions for each frame.
+    # First three entries are the Lx, Ly, Lz lengths and the last
+    # three are the angles - all 90 degrees.
+    box_dims = np.zeros((number_of_frames, 6))
+    box_dims[:, :3] = box_lengths
+    box_dims[:, 3:] = 90.0
 
     # Make the emtpy universe and attach the trajectory with
     # the MemoryReader function
@@ -65,6 +75,6 @@ def dummy_universe(api_com_array):
         atom_resindex=np.arange(number_of_atoms),
         trajectory=True,
     )
-    dummy_universe.trajectory = MemoryReader(api_com_array)
+    dummy_universe.trajectory = MemoryReader(api_com_array, dimensions=box_dims)
 
     return dummy_universe
