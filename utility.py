@@ -39,3 +39,11 @@ def api_com_extractor(
     # Save the results to a file to avoid repeat computation
     np.savez_compressed(output_filename, api_coms=api_coms)
     return
+
+
+def load_api_coms(api_com_file):
+    """Loads API COM file"""
+
+    # Load the dta stored in the COM file
+    com_file_data = np.load(api_com_file, allow_pickle=True)
+    return com_file_data["api_coms"]

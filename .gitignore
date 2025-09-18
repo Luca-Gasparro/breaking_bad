@@ -3,6 +3,8 @@
 
 **/*.png
 
-**/*.dry_nvt_trim.xtc_offsets.npz
+**/*.pyc
 
-**/*.dry_nvt_trim.xtc_offsets.lock
+**/*.dry_nvt_trim_whole.xtc_offsets.npz
+
+**/*.dry_nvt_trim_whole.xtc_offsets.lock
