@@ -3,7 +3,7 @@
 
 **/*.png
 
-**/*.pyc
+*.pyc
 
 **/*.dry_nvt_trim_whole.xtc_offsets.npz
 
