@@ -6,7 +6,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utility import api_simulation_extractor, dummy_universe
+from utility import api_simulation_extractor, dummy_universe, polymer_atom_extraction
 
 
 def api_api_rdf(
@@ -34,3 +34,9 @@ def api_api_rdf(
     api_rdf.run()
 
     return api_rdf
+
+
+nitrogen_polymer_coords = polymer_atom_extraction(
+    "dry_nvt_polymer.tpr", "dry_nvt_trim_polymers.xtc", "N1", start_time=2000
+)
+print(nitrogen_polymer_coords)

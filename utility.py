@@ -6,7 +6,7 @@ from MDAnalysis.coordinates.memory import MemoryReader
 
 
 def api_simulation_extractor(
-    topology_file, trajectroy_file, api_residue_name, output_filename, start_time
+    topology_file, trajectory_file, api_residue_name, output_filename, start_time
 ):
     """Extract centres-of-mass of the API from the time of equilibration starting."""
 
@@ -20,7 +20,7 @@ def api_simulation_extractor(
         return output_filename
 
     # Use MDAnalysis to load in the trajectories
-    traj = mda.Universe(topology_file, trajectroy_file)
+    traj = mda.Universe(topology_file, trajectory_file)
     timestep = traj.trajectory.dt
     start_frame = int(start_time / timestep)
     number_of_frames = len(traj.trajectory) - start_frame
@@ -83,3 +83,32 @@ def dummy_universe(api_simulation_file):
     dummy_universe.trajectory = MemoryReader(api_com_array, dimensions=box_dims)
 
     return dummy_universe
+
+
+def polymer_atom_extraction(
+    topology_file, polymer_trajectory_file, atom_name, start_time
+):
+    """Extracts a representative atom that will be used as a reference particle
+    for the polymer radial distribution funciton. Extraction is for frames after
+    equilibration has started. The topology and trajectory files are based purely on
+    the combined polymer index. This is done to make atom selection easier."""
+
+    # Use MDAnalysis to load in the trajectory
+    polymer_traj = mda.Universe(topology_file, polymer_trajectory_file)
+    timestep = polymer_traj.trajectory.dt
+    start_frame = int(start_time / timestep)
+    print(polymer_traj.atoms.names)
+
+    # Atom selection
+    atom_selection = polymer_traj.select_atoms(f"name {atom_name}")
+    number_of_atoms = len(atom_selection)
+    number_of_frames = len(polymer_traj.trajectory) - start_frame
+
+    # Allocate the array to store atom positions
+    atom_positions = np.zeros((number_of_frames, number_of_atoms, 3))
+
+    # Iterate over frames after equilibration
+    for i, _ in enumerate(polymer_traj.trajectory[start_frame:]):
+        atom_positions[i] = atom_selection.positions
+
+    return atom_positions
