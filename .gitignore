@@ -8,3 +8,9 @@
 **/*.dry_nvt_trim_whole.xtc_offsets.npz
 
 **/*.dry_nvt_trim_whole.xtc_offsets.lock
+
+
+**/*.dry_nvt_trim_polymers.xtc_offsets.npz
+
+**/*.dry_nvt_trim_polymers.xtc_offsets.lock
+
