@@ -36,7 +36,31 @@ def api_api_rdf(
     return api_rdf
 
 
-nitrogen_polymer_coords = polymer_atom_extraction(
-    "dry_nvt_polymer.tpr", "dry_nvt_trim_polymers.xtc", "N1", start_time=2000
-)
-print(nitrogen_polymer_coords)
+def polymer_polymer_rdf(
+    polymer_topology_file, polymer_trajectory_file, atom_name, start_time
+):
+    """Computes radial distribution function for polymer-polymer using a selected reference atom.
+    Frames after the start time are used in the calculation."""
+
+    polymer_traj = mda.Universe(polymer_topology_file, polymer_trajectory_file)
+    timestep = polymer_traj.trajectory.dt
+    start_frame = int(start_time / timestep)
+
+    atom_selection = polymer_traj.select_atoms(f"name {atom_name}")
+
+    polymer_rdf = InterRDF(
+        atom_selection, atom_selection, nbins=75, range=(0, 40), exclusion_block=(1, 1)
+    )
+    polymer_rdf.run(start=start_frame)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(polymer_rdf.results.bins, polymer_rdf.results.rdf)
+    plt.title("poly-poly rdf")
+    plt.ylabel("rdf")
+    plt.xlabel("angstroms")
+    plt.savefig("poly-poly_rdf_test.png", dpi=300)
+
+    return
+
+
+polymer_polymer_rdf("dry_nvt_polymer.tpr", "dry_nvt_trim_polymers.xtc", "N1", 2000)

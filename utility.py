@@ -86,7 +86,7 @@ def dummy_universe(api_simulation_file):
 
 
 def polymer_atom_extraction(
-    topology_file, polymer_trajectory_file, atom_name, start_time
+    polymer_topology_file, polymer_trajectory_file, atom_name, start_time
 ):
     """Extracts a representative atom that will be used as a reference particle
     for the polymer radial distribution funciton. Extraction is for frames after
@@ -94,7 +94,7 @@ def polymer_atom_extraction(
     the combined polymer index. This is done to make atom selection easier."""
 
     # Use MDAnalysis to load in the trajectory
-    polymer_traj = mda.Universe(topology_file, polymer_trajectory_file)
+    polymer_traj = mda.Universe(polymer_topology_file, polymer_trajectory_file)
     timestep = polymer_traj.trajectory.dt
     start_frame = int(start_time / timestep)
     print(polymer_traj.atoms.names)
