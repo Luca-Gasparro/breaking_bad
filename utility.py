@@ -5,7 +5,7 @@ import MDAnalysis as mda
 from MDAnalysis.coordinates.memory import MemoryReader
 
 
-def api_com_extractor(
+def api_simulation_extractor(
     topology_file, trajectroy_file, api_residue_name, output_filename, start_time
 ):
     """Extract centres-of-mass of the API from the time of equilibration starting."""
@@ -44,31 +44,36 @@ def api_com_extractor(
     return
 
 
-def load_api_coms(api_com_file):
+def load_api_simulation(api_simulation_file):
     """Loads API COM file"""
 
     # Load the dta stored in the COM file
-    com_file_data = np.load(api_com_file, allow_pickle=True)
+    com_file_data = np.load(api_simulation_file, allow_pickle=True)
     return com_file_data["api_coms"], com_file_data["box_lengths"]
 
 
-def dummy_universe(api_com_file):
+def dummy_universe(api_simulation_file):
     """Creates a minimal dummy Universe for the API COMS. This
     allows radial distribution functions to be calculated with MDAnalysis"""
 
-    api_com_array, box_lengths = load_api_coms(api_com_file=api_com_file)
+    if not api_simulation_file.endswith(".npz"):
+        api_simulation_file += ".npz"
+
+    api_com_array, box_lengths = load_api_simulation(
+        api_simulation_file=api_simulation_file
+    )
     # Extract the number of frames and atoms
     number_of_frames, number_of_atoms, _ = api_com_array.shape
 
-    # Construct the box dimensions for each frame.
+    # Construct the box dimensions for each frame
     # First three entries are the Lx, Ly, Lz lengths and the last
     # three are the angles - all 90 degrees.
     box_dims = np.zeros((number_of_frames, 6))
     box_dims[:, :3] = box_lengths
     box_dims[:, 3:] = 90.0
 
-    # Make the emtpy universe and attach the trajectory with
-    # the MemoryReader function
+    # Make the emtpy universe and attach the trajectory and box dimensions
+    # with the MemoryReader function
     dummy_universe = mda.Universe.empty(
         n_atoms=number_of_atoms,
         n_residues=number_of_atoms,

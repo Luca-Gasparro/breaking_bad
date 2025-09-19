@@ -6,23 +6,31 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utility import api_com_extractor, load_api_coms, dummy_universe
+from utility import api_simulation_extractor, dummy_universe
 
-api_com_extractor(
-    topology_file="dry_nvt.tpr",
-    trajectroy_file="dry_nvt_trim_whole.xtc",
-    api_residue_name="NAP",
-    output_filename="test",
-    start_time=2000,
-)
-api_com_array, box_lengths = load_api_coms("test.npz")
 
-fake_uni = dummy_universe(api_com_file="test.npz")
-print(fake_uni.dimensions)
+def api_api_rdf(
+    topology_file, trajectory_file, api_residue_name, output_filename, start_time
+):
+    """Computes and plots the RDF for API-API. Uses the centres of mass of the API
+    as reference particles."""
 
-rdf = InterRDF(
-    fake_uni.atoms, fake_uni.atoms, nbins=200, range=(0, 40), exclusion_block=(1, 1)
-)
-rdf.run()
-plt.plot(rdf.results.bins, rdf.results.rdf)
-plt.savefig("test.png", dpi=300)
+    api_simulation_extractor(
+        topology_file=topology_file,
+        trajectroy_file=trajectory_file,
+        api_residue_name=api_residue_name,
+        output_filename=output_filename,
+        start_time=start_time,
+    )
+    api_universe = dummy_universe(api_simulation_file=output_filename)
+
+    api_rdf = InterRDF(
+        api_universe.atoms,
+        api_universe.atoms,
+        nbins=75,
+        range=(0, 30),
+        exclusion_block=(1, 1),
+    )
+    api_rdf.run()
+
+    return api_rdf
