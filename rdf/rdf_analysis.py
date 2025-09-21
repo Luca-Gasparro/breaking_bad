@@ -17,7 +17,7 @@ def api_api_rdf(
 
     api_simulation_extractor(
         topology_file=topology_file,
-        trajectroy_file=trajectory_file,
+        trajectory_file=trajectory_file,
         api_residue_name=api_residue_name,
         output_filename=output_filename,
         start_time=start_time,
@@ -37,7 +37,7 @@ def api_api_rdf(
 
 
 def polymer_polymer_rdf(
-    polymer_topology_file, polymer_trajectory_file, atom_name, start_time
+    polymer_topology_file, polymer_trajectory_file, polymer_atom_name, start_time
 ):
     """Computes radial distribution function for polymer-polymer using a selected reference atom.
     Frames after the start time are used in the calculation."""
@@ -46,10 +46,14 @@ def polymer_polymer_rdf(
     timestep = polymer_traj.trajectory.dt
     start_frame = int(start_time / timestep)
 
-    atom_selection = polymer_traj.select_atoms(f"name {atom_name}")
+    polymer_atom_selection = polymer_traj.select_atoms(f"name {polymer_atom_name}")
 
     polymer_rdf = InterRDF(
-        atom_selection, atom_selection, nbins=75, range=(0, 40), exclusion_block=(1, 1)
+        polymer_atom_selection,
+        polymer_atom_selection,
+        nbins=75,
+        range=(0, 40),
+        exclusion_block=(1, 1),
     )
     polymer_rdf.run(start=start_frame)
 
@@ -63,4 +67,57 @@ def polymer_polymer_rdf(
     return
 
 
-polymer_polymer_rdf("dry_nvt_polymer.tpr", "dry_nvt_trim_polymers.xtc", "N1", 2000)
+def api_polymer_rdf(
+    topology_file,
+    trajectory_file,
+    api_residue_name,
+    output_filename,
+    polymer_topology_file,
+    polymer_trajectory_file,
+    polymer_atom_name,
+    start_time,
+):
+    api_simulation_extractor(
+        topology_file=topology_file,
+        trajectory_file=trajectory_file,
+        api_residue_name=api_residue_name,
+        output_filename=output_filename,
+        start_time=start_time,
+    )
+    api_universe = dummy_universe(api_simulation_file=output_filename)
+
+    polymer_traj = mda.Universe(polymer_topology_file, polymer_trajectory_file)
+    timestep = polymer_traj.trajectory.dt
+    start_frame = int(start_time / timestep)
+
+    polymer_atom_selection = polymer_traj.select_atoms(f"name {polymer_atom_name}")
+
+    api_polymer_rdf = InterRDF(
+        api_universe.atoms,
+        polymer_atom_selection,
+        nbins=120,
+        range=(0, 40),
+        exclusion_block=(1, 1),
+    )
+    api_polymer_rdf.run(start=start_frame)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(api_polymer_rdf.results.bins, api_polymer_rdf.results.rdf)
+    plt.title("api-poly rdf")
+    plt.ylabel("rdf")
+    plt.xlabel("angstroms")
+    plt.savefig("api-poly_rdf_test.png", dpi=300)
+
+    return
+
+
+api_polymer_rdf(
+    "dry_nvt.tpr",
+    "dry_nvt_trim_whole.xtc",
+    "NAP",
+    "test4.npz",
+    "dry_nvt_polymer.tpr",
+    "dry_nvt_trim_polymers.xtc",
+    "N1",
+    2000,
+)
