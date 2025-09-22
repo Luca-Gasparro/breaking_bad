@@ -85,30 +85,16 @@ def dummy_universe(api_simulation_file):
     return dummy_universe
 
 
-def polymer_atom_extraction(
-    polymer_topology_file, polymer_trajectory_file, atom_name, start_time
-):
+def polymer_atom_extraction(polymer_topology_file, polymer_trajectory_file, atom_name):
     """Extracts a representative atom that will be used as a reference particle
-    for the polymer radial distribution funciton. Extraction is for frames after
-    equilibration has started. The topology and trajectory files are based purely on
+    for the polymer radial distribution funciton. The topology and trajectory files are based purely on
     the combined polymer index. This is done to make atom selection easier."""
 
     # Use MDAnalysis to load in the trajectory
     polymer_traj = mda.Universe(polymer_topology_file, polymer_trajectory_file)
-    timestep = polymer_traj.trajectory.dt
-    start_frame = int(start_time / timestep)
-    print(polymer_traj.atoms.names)
+    polymer_timestep = polymer_traj.trajectory.dt
 
     # Atom selection
-    atom_selection = polymer_traj.select_atoms(f"name {atom_name}")
-    number_of_atoms = len(atom_selection)
-    number_of_frames = len(polymer_traj.trajectory) - start_frame
+    polymer_atom_selection = polymer_traj.select_atoms(f"name {atom_name}")
 
-    # Allocate the array to store atom positions
-    atom_positions = np.zeros((number_of_frames, number_of_atoms, 3))
-
-    # Iterate over frames after equilibration
-    for i, _ in enumerate(polymer_traj.trajectory[start_frame:]):
-        atom_positions[i] = atom_selection.positions
-
-    return atom_positions
+    return polymer_atom_selection, polymer_timestep
