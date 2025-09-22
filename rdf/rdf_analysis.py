@@ -109,3 +109,15 @@ def api_polymer_rdf(
     api_polymer_rdf.run(start=start_frame)
 
     return api_polymer_rdf.results.bins, api_polymer_rdf.results.rdf
+
+
+def rdf_plotter(rdf_bins, rdf_values, rdf_type):
+    """Minimal plotting function for radial distribution functions."""
+    plt.figure(figsize=(8, 6))
+    plt.xlabel("Distance (Angstrom)", fontsize=15)
+    plt.ylabel("RDF Value", fontsize=15)
+    plt.tick_params(labelsize=15)
+    plt.grid()
+    plt.plot(rdf_bins, rdf_values)
+    plt.savefig(f"{rdf_type}_rdf.png", dpi=300)
+    return
