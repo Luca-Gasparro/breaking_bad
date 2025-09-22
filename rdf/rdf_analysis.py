@@ -10,7 +10,11 @@ from utility import api_simulation_extractor, dummy_universe, polymer_atom_extra
 
 
 def api_api_rdf(
-    topology_file, trajectory_file, api_residue_name, output_filename, start_time
+    topology_file,
+    trajectory_file,
+    api_residue_name,
+    simulation_information_filename,
+    start_time,
 ):
     """Computes and plots the RDF for API-API. Uses the centres of mass of the API
     as reference particles."""
@@ -19,17 +23,17 @@ def api_api_rdf(
         topology_file=topology_file,
         trajectory_file=trajectory_file,
         api_residue_name=api_residue_name,
-        output_filename=output_filename,
+        output_filename=simulation_information_filename,
         start_time=start_time,
     )
-    api_universe = dummy_universe(api_simulation_file=output_filename)
+    api_universe = dummy_universe(api_simulation_file=simulation_information_filename)
 
     # Calculate the API-API RDF
     api_rdf = InterRDF(
         api_universe.atoms,
         api_universe.atoms,
-        nbins=75,
-        range=(0, 30),
+        nbins=100,
+        range=(0, 42.5),
         exclusion_block=(1, 1),
     )
     api_rdf.run()
@@ -56,14 +60,14 @@ def polymer_polymer_rdf(
     polymer_rdf = InterRDF(
         polymer_atom_selection,
         polymer_atom_selection,
-        nbins=75,
-        range=(0, 40),
+        nbins=150,
+        range=(0, 42.5),
         exclusion_block=(1, 1),
     )
     polymer_rdf.run(start=start_frame)
 
     # Return information needed to plot - the bins and the RDF
-    return polymer_rdf.results.bins, polymer_polymer_rdf.rdf
+    return polymer_rdf.results.bins, polymer_rdf.results.rdf
 
 
 def api_polymer_rdf(
@@ -121,3 +125,27 @@ def rdf_plotter(rdf_bins, rdf_values, rdf_type):
     plt.plot(rdf_bins, rdf_values)
     plt.savefig(f"{rdf_type}_rdf.png", dpi=300)
     return
+
+
+api_bins, api_rdf = api_api_rdf(
+    "dry_nvt.tpr", "dry_nvt_trim_whole.xtc", "NAP", "test_api", 2000
+)
+rdf_plotter(api_bins, api_rdf, rdf_type="api-api")
+
+poly_bins, poly_rdf = polymer_polymer_rdf(
+    "dry_nvt_polymer.tpr", "dry_nvt_trim_polymers.xtc", "N1", 2000
+)
+rdf_plotter(poly_bins, poly_rdf, rdf_type="poly-poly")
+
+api_poly_bins, api_poly_rdf = api_polymer_rdf(
+    "dry_nvt.tpr",
+    "dry_nvt_trim_whole.xtc",
+    "NAP",
+    "test_api",
+    "dry_nvt_polymer.tpr",
+    "dry_nvt_trim_polymers.xtc",
+    "N1",
+    2000,
+)
+
+rdf_plotter(api_poly_bins, api_poly_rdf, "api-poly")
