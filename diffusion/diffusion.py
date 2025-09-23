@@ -2,6 +2,9 @@
 
 import os
 import re
+import numpy as np
+import MDAnalysis as mda
+import MDAnalysis.analysis.msd as msd
 
 
 def traj_organiser_300k(directory, is_dry):
@@ -24,3 +27,55 @@ def traj_organiser_300k(directory, is_dry):
     files.sort(key=lambda x: x[0])
 
     return [f[1] for f in files]
+
+
+def msd_calculator(
+    topology_file, sorted_trajectory_array, api_residue_name, msd_cache_file_name
+):
+    """Calculates MSDs from given trajectory array, storing them in an `.npz` file.
+    Need to come up with a better way to relate this to temperature but first focus on
+    diffusion."""
+
+    # Calculation is lengthy, so first check if it is already done. If already done
+    # skip it
+    if os.path.exists(msd_cache_file_name):
+        print(f"Loading cached MSD data from {msd_cache_file_name}")
+        data = np.load(msd_cache_file_name, allow_pickle=True)
+        return data["msd_array"], data["lagtimes_array"]
+
+    msds = []
+    lagtimes = []
+
+    # Calculating MSD and lagtime for each of the given trajectories
+    # Use Fast Fourier Transforms to increase calculation speed
+
+    for traj in sorted_trajectory_array:
+        u = mda.Universe(topology_file, traj)
+        mean_square_displacement = msd.EinsteinMSD(
+            u, select=f"resname {api_residue_name}", msd_tpe="xyz", fft=True
+        )
+        mean_square_displacement.run()
+
+        # MDAnalysis works in Angstrom - we need to go from squared Angstroms to squared cm
+        mean_square_displacement_cm2 = (
+            mean_square_displacement.results.timeseries / 1e16
+        )
+
+        # Calculate the lagtimes - these are in ps
+        number_of_frames = mean_square_displacement.n_frames
+        timestep = u.trajectory.dt
+        lagtime = np.arange(number_of_frames) * timestep
+
+        msds.append(mean_square_displacement_cm2)
+        lagtimes.append(lagtime)
+
+    # Save results into `.npz` file - this might be redudant so
+    # after getting a convergence plot tidy this up
+    np.savez(
+        msd_cache_file_name,
+        msd_array=np.array(msds, dtype=object),
+        lagtimes_array=np.array(lagtimes, dtype=object),
+    )
+    print(f"Saved MSD data to {msd_cache_file_name}")
+
+    return np.array(msd, dtype=object), np.array(lagtimes, dtype=object)
