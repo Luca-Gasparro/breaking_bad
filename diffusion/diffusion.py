@@ -6,6 +6,7 @@ import numpy as np
 import MDAnalysis as mda
 import MDAnalysis.analysis.msd as msd
 import matplotlib.pyplot as plt
+from scipy.stats import linregress
 
 
 def traj_organiser_300k(directory, is_dry):
@@ -83,6 +84,7 @@ def msd_calculator(
 
 
 def msd_300k_plotter(msd_array, lagtime_array, is_dry):
+    """Plots the MSD curves relating to the temperature 300 K"""
     wet_label = "Dry" if is_dry else "Wet"
     for i, (lagtimes, msd_vals) in enumerate(zip(lagtime_array, msd_array), start=1):
         plt.figure(figsize=(10, 6))
@@ -95,6 +97,52 @@ def msd_300k_plotter(msd_array, lagtime_array, is_dry):
     return
 
 
+def diffusion_coefficients_300k(msd_array, lagtime_array, start_array_ps, end_array_ps):
+    """Calculates diffusion coefficients at 300 K for each given trajectory. Need to give
+    the fitting windows determined by the start and end array. The end times cannot be greater than
+    half the trajectory length due to fading statstics. This function should be used after
+    inspecting the relevant MSD plots."""
+
+    D = []
+
+    # Final lagtime of each trajectory will be the associated plotting value
+    lagtime_end = []
+
+    # Calculation of the diffusion coefficient using Einstein's relation
+    lagtime_end = []
+    for msd_vals, lagtimes, start, end in zip(
+        msd_array, lagtime_array, start_array_ps, end_array_ps
+    ):
+        # Convert the lagtimes to seconds
+        lagtimes_seconds = lagtimes / 1e12
+        start_index = np.searchsorted(lagtimes_seconds, start / 1e12)
+        end_index = np.searchsorted(lagtimes_seconds, end / 1e12)
+        if end_index > len(lagtimes_seconds):
+            end_index = len(lagtimes_seconds)
+
+        # Get the slope of the linear region denoted by the start and end array
+        slope, _, _, _, _ = linregress(
+            lagtimes_seconds[start_index:end_index], msd_vals[start_index:end_index]
+        )
+        diff_coeff = slope / 6
+        D.append(diff_coeff)
+        lagtime_end.append(lagtimes[-1])
+
+    return np.array(D), np.array(lagtime_end)
+
+
+def plot_diff_time_300k(diff_array, lagtime_end_array, is_dry):
+    """Plots diffusion against simulation time at 300 K."""
+    wet_label = "Dry" if is_dry else "Wet"
+    plt.figure(figsize=(10, 6))
+    plt.plot(lagtime_end_array, diff_array, marker="o")  # linestyle="None")
+    plt.xlabel("Time (ps)", fontsize=20)
+    plt.ylabel("Diffusion coefficient", fontsize=20)
+    plt.savefig(f"diffusion_vs_time_{wet_label.lower()}.png")
+    plt.tick_params(labelsize=20)
+    return
+
+
 trajs = traj_organiser_300k("/storage/chem/phuqdw/breaking-bad/diffusion", True)
 
 msd_300k, lagtimes_300k = msd_calculator(
@@ -102,3 +150,55 @@ msd_300k, lagtimes_300k = msd_calculator(
 )
 
 msd_300k_plotter(msd_300k, lagtimes_300k, is_dry=True)
+
+start_fit = [
+    300,
+    300,
+    500,
+    500,
+    1000,
+    1000,
+    1000,
+    1000,
+    2000,
+    3000,
+    2000,
+    2000,
+    2000,
+    2000,
+    2000,
+    2000,
+    2500,
+    2500,
+    2500,
+    2500,
+]
+
+end_fit = [
+    500,
+    1000,
+    1500,
+    1750,
+    2500,
+    3000,
+    3500,
+    3750,
+    4500,
+    5000,
+    5550,
+    6000,
+    6000,
+    7000,
+    7500,
+    8000,
+    7500,
+    7500,
+    8000,
+    8000,
+]
+
+D_300, lagtime_end = diffusion_coefficients_300k(
+    msd_300k, lagtimes_300k, start_fit, end_fit
+)
+
+plot_diff_time_300k(D_300, lagtime_end, True)
