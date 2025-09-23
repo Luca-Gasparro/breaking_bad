@@ -93,3 +93,12 @@ def msd_300k_plotter(msd_array, lagtime_array, is_dry):
         plt.savefig(f"msd_300k_{i}.png", dpi=300)
         plt.close()
     return
+
+
+trajs = traj_organiser_300k("/storage/chem/phuqdw/breaking-bad/diffusion", True)
+
+msd_300k, lagtimes_300k = msd_calculator(
+    "dry_cooling_ramp.tpr", trajs, "NAP", "conv_test.npz"
+)
+
+msd_300k_plotter(msd_300k, lagtimes_300k, is_dry=True)
