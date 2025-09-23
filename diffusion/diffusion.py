@@ -5,6 +5,7 @@ import re
 import numpy as np
 import MDAnalysis as mda
 import MDAnalysis.analysis.msd as msd
+import matplotlib.pyplot as plt
 
 
 def traj_organiser_300k(directory, is_dry):
@@ -79,3 +80,16 @@ def msd_calculator(
     print(f"Saved MSD data to {msd_cache_file_name}")
 
     return np.array(msd, dtype=object), np.array(lagtimes, dtype=object)
+
+
+def msd_300k_plotter(msd_array, lagtime_array, is_dry):
+    wet_label = "Dry" if is_dry else "Wet"
+    for i, (lagtimes, msd_vals) in enumerate(zip(lagtime_array, msd_array), start=1):
+        plt.figure(figsize=(10, 6))
+        plt.plot(lagtimes, msd_vals)
+        plt.xlabel("Time (ps)", fontsize=15)
+        plt.ylabel(r"MSD (cm$^2$)", fontsize=15)
+        plt.title(f"MSD {wet_label}")
+        plt.savefig(f"msd_300k_{i}.png", dpi=300)
+        plt.close()
+    return
