@@ -44,12 +44,12 @@ def api_simulation_extractor(
     return
 
 
-def load_api_simulation(api_simulation_file):
+def load_simulation(api_simulation_file):
     """Loads API COM file"""
 
     # Load the dta stored in the COM file
-    com_file_data = np.load(api_simulation_file, allow_pickle=True)
-    return com_file_data["api_coms"], com_file_data["box_lengths"]
+    simulation_file_data = np.load(api_simulation_file, allow_pickle=True)
+    return simulation_file_data["api_coms"], simulation_file_data["box_lengths"]
 
 
 def dummy_universe(api_simulation_file):
@@ -59,7 +59,7 @@ def dummy_universe(api_simulation_file):
     if not api_simulation_file.endswith(".npz"):
         api_simulation_file += ".npz"
 
-    api_com_array, box_lengths = load_api_simulation(
+    api_com_array, box_lengths = load_simulation(
         api_simulation_file=api_simulation_file
     )
     # Extract the number of frames and atoms
