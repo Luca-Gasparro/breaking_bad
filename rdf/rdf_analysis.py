@@ -163,7 +163,7 @@ def rdf_plotter(rdf_bins, rdf_values, rdf_type, frame_strides):
     return
 
 
-def api_api_rdf_manual(simulation_information_filename, bin_width):
+def api_api_rdf_manual(simulation_information_filename, bin_width, instantaneous):
     """Compute API-API rdf manually from saved centres of mass."""
 
     api_coms, box_lengths = load_simulation(simulation_information_filename)
@@ -176,38 +176,80 @@ def api_api_rdf_manual(simulation_information_filename, bin_width):
     bin_centers = 0.5 * (bins[1:] + bins[:-1])
     shell_volumes = (4 / 3) * np.pi * (bins[1:] ** 3 - bins[:-1] ** 3)
 
-    # Average density normalisation
-    rdf_accumulation = np.zeros(len(bin_centers))
-    for i in range(number_of_frames):
-        frame = api_coms[i]
-        box = box_lengths[i]
-        # Calculate pairwise displacement vectors
-        delta = frame[np.newaxis, :, :] - frame[:, np.newaxis, :]
-        # Apply the minimum image convention to ensure we get the correct displacement vector
-        delta -= np.rint(delta / box) * box
-        # Calculate distances and avoid double counting as well as self-self ditances
-        distances = np.sqrt(np.sum(delta**2, axis=-1))
-        dists = distances[np.triu_indices(number_of_molecules, k=1)]
-        hist, _ = np.histogram(dists, bins=bins)
-        rdf_accumulation += hist
-
-    mean_vol = np.mean(np.prod(box_lengths, axis=1))
+    # Unique number of pairs
     n_pairs = number_of_molecules * (number_of_molecules - 1) / 2
-    expected = n_pairs * number_of_frames * (shell_volumes / mean_vol)
-    g_r = rdf_accumulation / expected
+
+    # Per frame normalisation
+    if instantaneous:
+        gr_frames = []
+        for i in range(number_of_frames):
+            frame = api_coms[i]
+            box = box_lengths[i]
+            # Calculate pairwise displacement vectors
+            delta = frame[np.newaxis, :, :] - frame[:, np.newaxis, :]
+            # Apply the minimum image convention to ensure we get the correct displacement vector
+            delta -= np.rint(delta / box) * box
+            # Calculate distances and avoid double counting as well as self-self ditances
+            distances = np.sqrt(np.sum(delta**2, axis=-1))
+            dists = distances[np.triu_indices(number_of_molecules, k=1)]
+            hist, _ = np.histogram(dists, bins=bins)
+
+            vol = np.prod(box)
+            expected = n_pairs * (shell_volumes / vol)
+            gr_frames.append(hist / expected)
+
+        g_r = np.mean(gr_frames, axis=0)
+
+    else:
+        # Average density normalisation
+        rdf_accumulation = np.zeros(len(bin_centers))
+        for i in range(number_of_frames):
+            frame = api_coms[i]
+            box = box_lengths[i]
+            # Calculate pairwise displacement vectors
+            delta = frame[np.newaxis, :, :] - frame[:, np.newaxis, :]
+            # Apply the minimum image convention to ensure we get the correct displacement vector
+            delta -= np.rint(delta / box) * box
+            # Calculate distances and avoid double counting as well as self-self ditances
+            distances = np.sqrt(np.sum(delta**2, axis=-1))
+            dists = distances[np.triu_indices(number_of_molecules, k=1)]
+            hist, _ = np.histogram(dists, bins=bins)
+            rdf_accumulation += hist
+
+        mean_vol = np.mean(np.prod(box_lengths, axis=1))
+        expected = n_pairs * number_of_frames * (shell_volumes / mean_vol)
+        g_r = rdf_accumulation / expected
 
     return bin_centers, g_r
 
 
-bin_man, g_r_man = api_api_rdf_manual("test_api.npz", 0.5)
+bin_man_inst, g_r_man_inst = api_api_rdf_manual("test_api.npz", 0.5, True)
+bin_man, g_r_man = api_api_rdf_manual("test_api.npz", 0.5, False)
 bin_mda, g_r_mda = api_api_rdf(
     "dry_nvt.tpr", "dry_nvt_trim_whole.xtc", "NAP", "test_api.npz", 2000, [1], 75
 )
 plt.figure(figsize=(8, 6))
 plt.plot(bin_man, g_r_man, label="manual")
 plt.plot(bin_mda, g_r_mda[0], label="mda")
+plt.plot(bin_man_inst, g_r_man_inst, label="inst")
 plt.xlabel("distace / ang")
 plt.ylabel("rdf")
 plt.title("manual api-api rdf test")
 plt.legend()
 plt.savefig("manual_api-api_rdf_test.png", dpi=300)
+
+
+bin_mda_npt, g_r_mda_npt = api_api_rdf(
+    "dry_npt.tpr", "dry_npt_trim_whole.xtc", "NAP", "test_api_npt.npz", 2000, [1], 75
+)
+bin_man_npt, g_r_ma_npt = api_api_rdf_manual("test_api_npt.npz", 0.5, False)
+bin_man_inst_npt, g_r_man_inst_npt = api_api_rdf_manual("test_api_npt.npz", 0.5, True)
+plt.figure(figsize=(8, 6))
+plt.plot(bin_man, g_r_man, label="manual")
+plt.plot(bin_mda_npt, g_r_mda_npt[0], label="mda")
+plt.plot(bin_man_inst_npt, g_r_man_inst_npt, label="inst")
+plt.xlabel("distace / ang")
+plt.ylabel("rdf")
+plt.title("manual api-api rdf test npt")
+plt.legend()
+plt.savefig("manual_api-api_rdf_test_npt.png", dpi=300)
