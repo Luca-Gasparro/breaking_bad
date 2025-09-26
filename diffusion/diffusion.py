@@ -7,6 +7,7 @@ import MDAnalysis as mda
 import MDAnalysis.analysis.msd as msd
 import matplotlib.pyplot as plt
 from scipy.stats import linregress
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 
 def traj_organiser_300k(directory, is_dry):
@@ -80,7 +81,7 @@ def msd_calculator(
     )
     print(f"Saved MSD data to {msd_cache_file_name}")
 
-    return np.array(msd, dtype=object), np.array(lagtimes, dtype=object)
+    return np.array(msds, dtype=object), np.array(lagtimes, dtype=object)
 
 
 def msd_300k_plotter(msd_array, lagtime_array, is_dry):
@@ -131,22 +132,44 @@ def diffusion_coefficients_300k(msd_array, lagtime_array, start_array_ps, end_ar
     return np.array(D), np.array(lagtime_end)
 
 
-def plot_diff_time_300k(diff_array, lagtime_end_array, is_dry):
-    """Plots diffusion against simulation time at 300 K."""
+def plot_diff_time_300k_inset(diff_array, lagtime_end_array, is_dry):
+    """Plots diffusion against simulation time at 300 K, with an inset for last points."""
     wet_label = "Dry" if is_dry else "Wet"
-    plt.figure(figsize=(10, 6))
-    plt.plot(lagtime_end_array, diff_array, marker="o")  # linestyle="None")
-    plt.xlabel("Time (ps)", fontsize=20)
-    plt.ylabel("Diffusion coefficient", fontsize=20)
-    plt.savefig(f"diffusion_vs_time_{wet_label.lower()}.png")
-    plt.tick_params(labelsize=20)
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Main plot
+    ax.plot(lagtime_end_array, diff_array, marker="o")
+    ax.set_xlabel("Time (ps)", fontsize=20)
+    ax.set_ylabel("Diffusion coefficient", fontsize=20)
+    ax.tick_params(labelsize=20)
+
+    inset_ax = inset_axes(
+        ax,
+        width=5,
+        height=3,  # inches, not percentages
+        loc="upper right",
+        bbox_to_anchor=(0.95, 0.9),  # (x=1 fixed to right edge, y<1 shifts down)
+        bbox_transform=ax.transAxes,
+        borderpad=0,
+    )
+    n_points = max(5, len(lagtime_end_array) // 10)  # at least 5 points or 10% of data
+    inset_ax.plot(lagtime_end_array[-n_points:], diff_array[-n_points:], marker="o")
+    inset_ax.set_title("Zoom (last points)", fontsize=10)
+
+    # Optional: tighter limits around inset data
+    inset_ax.set_xlim(
+        min(lagtime_end_array[-n_points:]), max(lagtime_end_array[-n_points:])
+    )
+    inset_ax.set_ylim(min(diff_array[-n_points:]), max(diff_array[-n_points:]))
+
+    plt.savefig(f"diffusion_vs_time_{wet_label.lower()}.png", bbox_inches="tight")
     return
 
 
 trajs = traj_organiser_300k("/storage/chem/phuqdw/breaking-bad/diffusion", True)
 
 msd_300k, lagtimes_300k = msd_calculator(
-    "dry_cooling_ramp.tpr", trajs, "NAP", "conv_test.npz"
+    "dry_cooling_ramp.tpr", trajs, "NAP", "conv_test2.npz"
 )
 
 msd_300k_plotter(msd_300k, lagtimes_300k, is_dry=True)
@@ -155,13 +178,14 @@ start_fit = [
     300,
     300,
     500,
-    500,
     1000,
     1000,
     1000,
     1000,
+    1000,
+    1500,
     2000,
-    3000,
+    2000,
     2000,
     2000,
     2000,
@@ -169,36 +193,54 @@ start_fit = [
     2000,
     2000,
     2500,
+    5000,
     2500,
     2500,
-    2500,
+    6000,
+    6000,
+    6000,
+    6000,
+    6000,
+    7000,
+    7000,
+    7500,
+    7500,
 ]
 
 end_fit = [
     500,
-    1000,
+    750,
     1500,
-    1750,
+    2000,
     2500,
     3000,
-    3500,
-    3750,
-    4500,
+    3000,
+    4000,
+    4000,
     5000,
-    5550,
+    5000,
+    5000,
     6000,
     6000,
     7000,
-    7500,
-    8000,
-    7500,
-    7500,
     8000,
     8000,
+    9000,
+    9500,
+    10000,
+    10000,
+    11000,
+    11500,
+    12000,
+    12500,
+    13000,
+    13500,
+    14000,
+    14500,
+    15000,
 ]
 
 D_300, lagtime_end = diffusion_coefficients_300k(
     msd_300k, lagtimes_300k, start_fit, end_fit
 )
-
-plot_diff_time_300k(D_300, lagtime_end, True)
+plot_diff_time_300k_inset(D_300, lagtime_end, True)

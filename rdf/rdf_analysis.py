@@ -245,7 +245,7 @@ bin_mda_npt, g_r_mda_npt = api_api_rdf(
 bin_man_npt, g_r_ma_npt = api_api_rdf_manual("test_api_npt.npz", 0.5, False)
 bin_man_inst_npt, g_r_man_inst_npt = api_api_rdf_manual("test_api_npt.npz", 0.5, True)
 plt.figure(figsize=(8, 6))
-plt.plot(bin_man, g_r_man, label="manual")
+plt.plot(bin_man, g_r_man, label="average density norm")
 plt.plot(bin_mda_npt, g_r_mda_npt[0], label="mda")
 plt.plot(bin_man_inst_npt, g_r_man_inst_npt, label="inst")
 plt.xlabel("distace / ang")
