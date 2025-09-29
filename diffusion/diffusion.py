@@ -169,7 +169,7 @@ def plot_diff_time_300k_inset(diff_array, lagtime_end_array, is_dry):
 trajs = traj_organiser_300k("/storage/chem/phuqdw/breaking-bad/diffusion", True)
 
 msd_300k, lagtimes_300k = msd_calculator(
-    "dry_cooling_ramp.tpr", trajs, "NAP", "conv_test2.npz"
+    "dry_cooling_ramp.tpr", trajs, "NAP", "conv_test3.npz"
 )
 
 msd_300k_plotter(msd_300k, lagtimes_300k, is_dry=True)
@@ -205,6 +205,16 @@ start_fit = [
     7000,
     7500,
     7500,
+    8000,
+    8000,
+    8000,
+    8000,
+    8000,
+    9000,
+    9000,
+    8000,
+    8000,
+    8000,
 ]
 
 end_fit = [
@@ -237,6 +247,16 @@ end_fit = [
     13500,
     14000,
     14500,
+    15000,
+    15000,
+    15000,
+    15000,
+    15000,
+    15000,
+    15000,
+    15000,
+    15000,
+    15000,
     15000,
 ]
 
