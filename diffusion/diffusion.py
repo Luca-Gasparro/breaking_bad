@@ -93,8 +93,10 @@ def msd_300k_plotter(msd_array, lagtime_array, is_dry):
         plt.xlabel("Time (ps)", fontsize=15)
         plt.ylabel(r"MSD (cm$^2$)", fontsize=15)
         plt.title(f"MSD {wet_label}")
-        plt.savefig(f"msd_300k_{i}.png", dpi=300)
+        plt.savefig(f"msd_300k_{i}_{wet_label}.png", dpi=300)
+        plt.show()
         plt.close()
+
     return
 
 
@@ -146,121 +148,27 @@ def plot_diff_time_300k_inset(diff_array, lagtime_end_array, is_dry):
     inset_ax = inset_axes(
         ax,
         width=5,
-        height=3,  # inches, not percentages
+        height=3,
         loc="upper right",
-        bbox_to_anchor=(0.95, 0.9),  # (x=1 fixed to right edge, y<1 shifts down)
+        bbox_to_anchor=(0.95, 0.9),
         bbox_transform=ax.transAxes,
         borderpad=0,
     )
-    n_points = max(5, len(lagtime_end_array) // 10)  # at least 5 points or 10% of data
+    n_points = max(5, len(lagtime_end_array) // 10)
     inset_ax.plot(lagtime_end_array[-n_points:], diff_array[-n_points:], marker="o")
     inset_ax.set_title("Zoom (last points)", fontsize=10)
 
-    # Optional: tighter limits around inset data
-    inset_ax.set_xlim(
-        min(lagtime_end_array[-n_points:]), max(lagtime_end_array[-n_points:])
+    x_min, x_max = (
+        min(lagtime_end_array[-n_points:]),
+        max(lagtime_end_array[-n_points:]),
     )
-    inset_ax.set_ylim(min(diff_array[-n_points:]), max(diff_array[-n_points:]))
+    y_min, y_max = min(diff_array[-n_points:]), max(diff_array[-n_points:])
+
+    x_pad = 0.05 * (x_max - x_min)
+    y_pad = 0.05 * (y_max - y_min)
+
+    inset_ax.set_xlim(x_min - x_pad, x_max + x_pad)
+    inset_ax.set_ylim(y_min - y_pad, y_max + y_pad)
 
     plt.savefig(f"diffusion_vs_time_{wet_label.lower()}.png", bbox_inches="tight")
     return
-
-
-trajs = traj_organiser_300k("/storage/chem/phuqdw/breaking-bad/diffusion", True)
-
-msd_300k, lagtimes_300k = msd_calculator(
-    "dry_cooling_ramp.tpr", trajs, "NAP", "conv_test3.npz"
-)
-
-msd_300k_plotter(msd_300k, lagtimes_300k, is_dry=True)
-
-start_fit = [
-    300,
-    300,
-    500,
-    1000,
-    1000,
-    1000,
-    1000,
-    1000,
-    1500,
-    2000,
-    2000,
-    2000,
-    2000,
-    2000,
-    2000,
-    2000,
-    2000,
-    2500,
-    5000,
-    2500,
-    2500,
-    6000,
-    6000,
-    6000,
-    6000,
-    6000,
-    7000,
-    7000,
-    7500,
-    7500,
-    8000,
-    8000,
-    8000,
-    8000,
-    8000,
-    9000,
-    9000,
-    8000,
-    8000,
-    8000,
-]
-
-end_fit = [
-    500,
-    750,
-    1500,
-    2000,
-    2500,
-    3000,
-    3000,
-    4000,
-    4000,
-    5000,
-    5000,
-    5000,
-    6000,
-    6000,
-    7000,
-    8000,
-    8000,
-    9000,
-    9500,
-    10000,
-    10000,
-    11000,
-    11500,
-    12000,
-    12500,
-    13000,
-    13500,
-    14000,
-    14500,
-    15000,
-    15000,
-    15000,
-    15000,
-    15000,
-    15000,
-    15000,
-    15000,
-    15000,
-    15000,
-    15000,
-]
-
-D_300, lagtime_end = diffusion_coefficients_300k(
-    msd_300k, lagtimes_300k, start_fit, end_fit
-)
-plot_diff_time_300k_inset(D_300, lagtime_end, True)
