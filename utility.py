@@ -97,4 +97,4 @@ def polymer_atom_extraction(polymer_topology_file, polymer_trajectory_file, atom
     # Atom selection
     polymer_atom_selection = polymer_traj.select_atoms(f"name {atom_name}")
 
-    return polymer_atom_selection, polymer_timestep
+    return polymer_traj, polymer_atom_selection, polymer_timestep

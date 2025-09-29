@@ -36,6 +36,15 @@ def api_api_rdf(
     )
     api_universe = dummy_universe(api_simulation_file=simulation_information_filename)
 
+    # Obtaining a safe interval for calculating the rdf
+    api_universe_load = api_universe.universe
+    half_box_lengths = []
+    for ts in api_universe_load.trajectory:
+        lx, ly, lz = ts.dimensions[:3]
+        half_box_lengths.append(min(lx, ly, lz) / 2.0)
+    # Safest range to use: minimum of half box lengths
+    max_range = min(half_box_lengths)
+
     rdf_values = []
     bins = None
 
@@ -45,7 +54,7 @@ def api_api_rdf(
             api_universe.atoms,
             api_universe.atoms,
             nbins=nbins,
-            range=(0, 42.5),
+            range=(0, max_range),
             exclusion_block=(1, 1),
         )
         api_rdf.run(step=stride)
@@ -68,12 +77,20 @@ def polymer_polymer_rdf(
     Frames after the start time are used in the calculation."""
 
     # Extract the reference polymer atom and the timestep
-    polymer_atom_selection, timestep = polymer_atom_extraction(
+    polymer_trajectory, polymer_atom_selection, timestep = polymer_atom_extraction(
         polymer_topology_file=polymer_topology_file,
         polymer_trajectory_file=polymer_trajectory_file,
         atom_name=polymer_atom_name,
     )
     start_frame = int(start_time / timestep)
+
+    # Safe calculation range
+    polymer_trajectory_uni = polymer_trajectory.universe
+    half_box_lengths = []
+    for ts in polymer_trajectory_uni.trajectory:
+        lx, ly, lz = ts.dimension[:3]
+        half_box_lengths.append(min(lx, ly, lz) / 2.0)
+    max_range = min(half_box_lengths)
 
     rdf_values = []
     bins = None
@@ -84,7 +101,7 @@ def polymer_polymer_rdf(
             polymer_atom_selection,
             polymer_atom_selection,
             nbins=150,
-            range=(0, 42.5),
+            range=(0, max_range),
             exclusion_block=(1, 1),
         )
         polymer_rdf.run(start=start_frame, step=stride)
@@ -120,7 +137,16 @@ def api_polymer_rdf(
     )
     api_universe = dummy_universe(api_simulation_file=output_filename)
 
-    polymer_atom_selection, timestep = polymer_atom_selection, timestep = (
+    # Obtaining a safe interval for calculating the rdf
+    api_universe_load = api_universe.universe
+    half_box_lengths = []
+    for ts in api_universe_load.trajectory:
+        lx, ly, lz = ts.dimensions[:3]
+        half_box_lengths.append(min(lx, ly, lz) / 2.0)
+    # Safest range to use: minimum of half box lengths
+    max_range = min(half_box_lengths)
+
+    _, polymer_atom_selection, timestep = polymer_atom_selection, timestep = (
         polymer_atom_extraction(
             polymer_topology_file=polymer_topology_file,
             polymer_trajectory_file=polymer_trajectory_file,
@@ -139,7 +165,7 @@ def api_polymer_rdf(
 
     for stride in frame_strides:
         api_polymer_rdf = InterRDF(
-            api_universe.atoms, polymer_atom_selection, nbins=120, range=(0, 40)
+            api_universe.atoms, polymer_atom_selection, nbins=120, range=(0, max_range)
         )
         api_polymer_rdf.run(start=start_frame, step=stride)
         rdf_values.append(api_polymer_rdf.results.rdf)
