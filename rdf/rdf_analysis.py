@@ -247,35 +247,3 @@ def api_api_rdf_manual(simulation_information_filename, bin_width, instantaneous
         g_r = rdf_accumulation / expected
 
     return bin_centers, g_r
-
-
-bin_man_inst, g_r_man_inst = api_api_rdf_manual("test_api.npz", 0.5, True)
-bin_man, g_r_man = api_api_rdf_manual("test_api.npz", 0.5, False)
-bin_mda, g_r_mda = api_api_rdf(
-    "dry_nvt.tpr", "dry_nvt_trim_whole.xtc", "NAP", "test_api.npz", 2000, [1], 75
-)
-plt.figure(figsize=(8, 6))
-plt.plot(bin_man, g_r_man, label="manual")
-plt.plot(bin_mda, g_r_mda[0], label="mda")
-plt.plot(bin_man_inst, g_r_man_inst, label="inst")
-plt.xlabel("distace / ang")
-plt.ylabel("rdf")
-plt.title("manual api-api rdf test")
-plt.legend()
-plt.savefig("manual_api-api_rdf_test.png", dpi=300)
-
-
-bin_mda_npt, g_r_mda_npt = api_api_rdf(
-    "dry_npt.tpr", "dry_npt_trim_whole.xtc", "NAP", "test_api_npt.npz", 2000, [1], 75
-)
-bin_man_npt, g_r_ma_npt = api_api_rdf_manual("test_api_npt.npz", 0.5, False)
-bin_man_inst_npt, g_r_man_inst_npt = api_api_rdf_manual("test_api_npt.npz", 0.5, True)
-plt.figure(figsize=(8, 6))
-plt.plot(bin_man, g_r_man, label="average density norm")
-plt.plot(bin_mda_npt, g_r_mda_npt[0], label="mda")
-plt.plot(bin_man_inst_npt, g_r_man_inst_npt, label="inst")
-plt.xlabel("distace / ang")
-plt.ylabel("rdf")
-plt.title("manual api-api rdf test npt")
-plt.legend()
-plt.savefig("manual_api-api_rdf_test_npt.png", dpi=300)

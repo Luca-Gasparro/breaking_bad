@@ -154,7 +154,7 @@ def plot_diff_time_300k_inset(diff_array, lagtime_end_array, is_dry):
         bbox_transform=ax.transAxes,
         borderpad=0,
     )
-    n_points = max(10, len(lagtime_end_array) // 10)
+    n_points = max(15, len(lagtime_end_array) // 10)
     inset_ax.plot(lagtime_end_array[-n_points:], diff_array[-n_points:], marker="o")
     inset_ax.set_title("Zoom (last points)", fontsize=10)
 
