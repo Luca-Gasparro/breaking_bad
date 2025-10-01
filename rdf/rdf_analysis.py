@@ -195,9 +195,9 @@ def api_api_rdf_manual(simulation_information_filename, bin_width, instantaneous
     api_coms, box_lengths = load_simulation(simulation_information_filename)
     number_of_frames, number_of_molecules, _ = api_coms.shape
 
-    # Setting up bins for rdf
-    mean_box = np.mean(box_lengths, axis=0)
-    r_max = 0.5 * np.mean(mean_box)
+    # Safest cut-off: half the minimum box length for all frames
+    half_box_lengths = np.min(box_lengths, axis=1) / 2.0
+    r_max = np.min(half_box_lengths)
     bins = np.arange(0, r_max + bin_width, bin_width)
     bin_centers = 0.5 * (bins[1:] + bins[:-1])
     shell_volumes = (4 / 3) * np.pi * (bins[1:] ** 3 - bins[:-1] ** 3)
