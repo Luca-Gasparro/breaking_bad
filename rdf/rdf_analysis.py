@@ -88,7 +88,7 @@ def polymer_polymer_rdf(
     polymer_trajectory_uni = polymer_trajectory.universe
     half_box_lengths = []
     for ts in polymer_trajectory_uni.trajectory:
-        lx, ly, lz = ts.dimension[:3]
+        lx, ly, lz = ts.dimensions[:3]
         half_box_lengths.append(min(lx, ly, lz) / 2.0)
     max_range = min(half_box_lengths)
 
@@ -226,8 +226,8 @@ def api_api_rdf_manual(simulation_information_filename, bin_width, instantaneous
 
         g_r = np.mean(gr_frames, axis=0)
 
+    # Average density normalisation
     else:
-        # Average density normalisation
         rdf_accumulation = np.zeros(len(bin_centers))
         for i in range(number_of_frames):
             frame = api_coms[i]
@@ -239,6 +239,90 @@ def api_api_rdf_manual(simulation_information_filename, bin_width, instantaneous
             # Calculate distances and avoid double counting as well as self-self ditances
             distances = np.sqrt(np.sum(delta**2, axis=-1))
             dists = distances[np.triu_indices(number_of_molecules, k=1)]
+            hist, _ = np.histogram(dists, bins=bins)
+            rdf_accumulation += hist
+
+        mean_vol = np.mean(np.prod(box_lengths, axis=1))
+        expected = n_pairs * number_of_frames * (shell_volumes / mean_vol)
+        g_r = rdf_accumulation / expected
+
+    return bin_centers, g_r
+
+
+def polymer_polymer_rdf_manual(
+    polymer_topology_file,
+    polymer_trajectory_file,
+    reference_particle_name,
+    bin_width,
+    instantaneous,
+    start_time,
+):
+    """Compute polymer-polymer rdf manually using a chosen reference atom."""
+
+    # Obtain reference particle positions and box lengths from time of equilbration
+    polymer_trajectory, polymer_atom_selection, timestep = polymer_atom_extraction(
+        polymer_topology_file=polymer_topology_file,
+        polymer_trajectory_file=polymer_trajectory_file,
+        atom_name=reference_particle_name,
+    )
+    start_frame = int(start_time / timestep)
+
+    polymer_atom_positions = []
+    box_lengths = []
+
+    for ts in polymer_trajectory.trajectory[start_frame:]:
+        polymer_atom_positions.append(polymer_atom_selection.positions.copy())
+        box_lengths.append(ts.dimensions[:3].copy())
+
+    polymer_atom_positions = np.array(polymer_atom_positions)
+    box_lengths = np.array(box_lengths)
+    number_of_frames = len(polymer_atom_positions)
+
+    # Set up the bins using a safe cut off: half the minimum box length for all frames
+    half_box_lengths = np.min(box_lengths, axis=1) / 2.0
+    r_max = np.min(half_box_lengths)
+    bins = np.arange(0, r_max + bin_width, bin_width)
+    bin_centers = 0.5 * (bins[1:] + bins[:-1])
+    shell_volumes = (4 / 3) * np.pi * (bins[1:] ** 3 - bins[:-1] ** 3)
+
+    # Unique number of pairs
+    number_of_atoms = len(polymer_atom_selection)
+    n_pairs = number_of_atoms * (number_of_atoms - 1) / 2
+
+    # Per frame normalisation
+    if instantaneous:
+        gr_frames = []
+        for i in range(number_of_frames):
+            frame = polymer_atom_positions[i]
+            box = box_lengths[i]
+            # Calculate pairwise displacement vectors
+            delta = frame[np.newaxis, :, :] - frame[:, np.newaxis, :]
+            # Apply the minimum image convention to ensure we get the correct displacement vector
+            delta -= np.rint(delta / box) * box
+            # Calculate distances and avoid double counting as well as self-self ditances
+            distances = np.sqrt(np.sum(delta**2, axis=-1))
+            dists = distances[np.triu_indices(number_of_atoms, k=1)]
+            hist, _ = np.histogram(dists, bins=bins)
+
+            vol = np.prod(box)
+            expected = n_pairs * (shell_volumes / vol)
+            gr_frames.append(hist / expected)
+
+        g_r = np.mean(gr_frames, axis=0)
+
+    # Average density normalisation
+    else:
+        rdf_accumulation = np.zeros(len(bin_centers))
+        for i in range(number_of_frames):
+            frame = polymer_atom_positions[i]
+            box = box_lengths[i]
+            # Calculate pairwise displacement vectors
+            delta = frame[np.newaxis, :, :] - frame[:, np.newaxis, :]
+            # Apply the minimum image convention to ensure we get the correct displacement vector
+            delta -= np.rint(delta / box) * box
+            # Calculate distances and avoid double counting as well as self-self ditances
+            distances = np.sqrt(np.sum(delta**2, axis=-1))
+            dists = distances[np.triu_indices(number_of_atoms, k=1)]
             hist, _ = np.histogram(dists, bins=bins)
             rdf_accumulation += hist
 
