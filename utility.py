@@ -3,6 +3,7 @@ import os
 import numpy as np
 import MDAnalysis as mda
 from MDAnalysis.coordinates.memory import MemoryReader
+from MDAnalysis.core.universe import Merge
 
 
 def api_simulation_extractor(
