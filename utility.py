@@ -3,13 +3,12 @@ import os
 import numpy as np
 import MDAnalysis as mda
 from MDAnalysis.coordinates.memory import MemoryReader
-from MDAnalysis.core.universe import Merge
 
 
 def api_simulation_extractor(
-    topology_file, trajectory_file, api_residue_name, output_filename, start_time
+    topology_file, trajectory_file, api_residue_name, output_filename
 ):
-    """Extract centres-of-mass of the API from the time of equilibration starting."""
+    """Extract centres-of-mass of the API."""
 
     # Make sure the output has a .npz extension
     if not output_filename.endswith(".npz"):
@@ -22,9 +21,10 @@ def api_simulation_extractor(
 
     # Use MDAnalysis to load in the trajectories
     traj = mda.Universe(topology_file, trajectory_file)
+
+    # Extract the number of frames and the timestep
+    number_of_frames = len(traj.trajectory)
     timestep = traj.trajectory.dt
-    start_frame = int(start_time / timestep)
-    number_of_frames = len(traj.trajectory) - start_frame
 
     # Select residues of API
     api = traj.select_atoms(f"resname {api_residue_name}")
@@ -34,14 +34,16 @@ def api_simulation_extractor(
     # COM and box length per frame extraction
     api_coms = np.zeros((number_of_frames, number_of_api, 3))
     box_lengths = np.zeros((number_of_frames, 3))
-    for i, ts in enumerate(traj.trajectory[start_frame:]):
+    for i, ts in enumerate(traj.trajectory):
         box_lengths[i] = ts.dimensions[:3]
         for j, residue in enumerate(api_resids):
             mol = traj.select_atoms(f"resname {api_residue_name} and resid {residue}")
             api_coms[i, j] = mol.center_of_mass()
 
     # Save the results to a file to avoid repeat computation
-    np.savez_compressed(output_filename, api_coms=api_coms, box_lengths=box_lengths)
+    np.savez_compressed(
+        output_filename, api_coms=api_coms, box_lengths=box_lengths, timestep=timestep
+    )
     return
 
 
@@ -49,8 +51,12 @@ def load_simulation(api_simulation_file):
     """Loads API COM file"""
 
     # Load the dta stored in the COM file
-    simulation_file_data = np.load(api_simulation_file, allow_pickle=True)
-    return simulation_file_data["api_coms"], simulation_file_data["box_lengths"]
+    api_simulation_file_data = np.load(api_simulation_file, allow_pickle=True)
+    return (
+        api_simulation_file_data["api_coms"],
+        api_simulation_file_data["box_lengths"],
+        api_simulation_file_data["timestep"],
+    )
 
 
 def dummy_universe(api_simulation_file):
@@ -60,7 +66,7 @@ def dummy_universe(api_simulation_file):
     if not api_simulation_file.endswith(".npz"):
         api_simulation_file += ".npz"
 
-    api_com_array, box_lengths = load_simulation(
+    api_com_array, box_lengths, _ = load_simulation(
         api_simulation_file=api_simulation_file
     )
     # Extract the number of frames and atoms
@@ -99,3 +105,47 @@ def polymer_atom_extraction(polymer_topology_file, polymer_trajectory_file, atom
     polymer_atom_selection = polymer_traj.select_atoms(f"name {atom_name}")
 
     return polymer_traj, polymer_atom_selection, polymer_timestep
+
+
+def combined_universe(
+    polymer_topology_file,
+    polymer_trajectory_file,
+    api_simulation_file,
+    polymer_atom_name,
+    api_atom_name,
+):
+    polymer_u = mda.Universe(polymer_topology_file, polymer_trajectory_file)
+    polymer_coords = np.array([ts.positions.copy() for ts in polymer_u.trajectory])
+    box_lengths = np.array([ts.dimensions.copy() for ts in polymer_u.trajectory])
+    n_frames, n_poly, _ = polymer_coords.shape
+
+    api_com_array, api_box_lengths, api_dt = load_simulation(api_simulation_file)
+    n_frames_api, n_api, _ = api_com_array.shape
+
+    if n_frames != n_frames_api:
+        raise ValueError(f"Frame mismatch: polymer {n_frames}, API {n_frames_api}")
+    if not np.allclose(box_lengths[:, :3], api_box_lengths, rtol=1e-5):
+        raise ValueError(
+            "Box lengths do not match between polymer and API trajectories"
+        )
+
+    combined_coords = np.concatenate([polymer_coords, api_com_array], axis=1)
+    n_total = n_poly + n_api
+
+    combined_u = mda.Universe.empty(
+        n_atoms=n_total,
+        n_residues=n_total,
+        atom_resindex=np.arange(n_total),
+        trajectory=True,
+    )
+
+    # Give unique names so selections work
+    atom_names = [f"{polymer_atom_name}{i}" for i in range(n_poly)] + [
+        f"{api_atom_name}{j}" for j in range(n_api)
+    ]
+    combined_u.add_TopologyAttr("name", atom_names)
+
+    combined_u.trajectory = MemoryReader(
+        combined_coords, dimensions=box_lengths, dt=api_dt
+    )
+    return combined_u

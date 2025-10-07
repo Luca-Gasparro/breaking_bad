@@ -12,6 +12,7 @@ from utility import (
     load_simulation,
     dummy_universe,
     polymer_atom_extraction,
+    combined_universe,
 )
 
 
@@ -33,11 +34,18 @@ def api_api_rdf(
         trajectory_file=trajectory_file,
         api_residue_name=api_residue_name,
         output_filename=simulation_information_filename,
-        start_time=start_time,
     )
     api_universe = dummy_universe(api_simulation_file=simulation_information_filename)
 
-    # Obtaining a safe interval for calculating the rdf
+    # Timestep for frame skipping
+    _, _, timestep = load_simulation(
+        api_simulation_file=simulation_information_filename
+    )
+
+    # Start frame from where to start calculating the RDF
+    start_frame = int(start_time / timestep)
+
+    # Obtaining a safe interval for calculating the RDF
     api_universe_load = api_universe.universe
     half_box_lengths = []
     for ts in api_universe_load.trajectory:
@@ -58,7 +66,7 @@ def api_api_rdf(
             range=(0, max_range),
             exclusion_block=(1, 1),
         )
-        api_rdf.run(step=stride)
+        api_rdf.run(start=start_frame, step=stride)
         rdf_values.append(api_rdf.results.rdf)
         if bins is None:
             bins = api_rdf.results.bins
@@ -118,7 +126,7 @@ def api_polymer_rdf(
     topology_file,
     trajectory_file,
     api_residue_name,
-    output_filename,
+    simulation_information_filename,
     polymer_topology_file,
     polymer_trajectory_file,
     polymer_atom_name,
@@ -134,10 +142,15 @@ def api_polymer_rdf(
         topology_file=topology_file,
         trajectory_file=trajectory_file,
         api_residue_name=api_residue_name,
-        output_filename=output_filename,
-        start_time=start_time,
+        output_filename=simulation_information_filename,
     )
-    api_universe = dummy_universe(api_simulation_file=output_filename)
+    api_universe = dummy_universe(api_simulation_file=simulation_information_filename)
+
+    # Timestep for frame skipping
+    _, _, api_timestep = load_simulation(
+        api_simulation_file=simulation_information_filename
+    )
+    api_start_frame = int(start_time / api_timestep)
 
     # Determine safe RDF range
     half_box_lengths = []
@@ -146,12 +159,17 @@ def api_polymer_rdf(
         half_box_lengths.append(min(lx, ly, lz) / 2.0)
     max_range = min(half_box_lengths)
 
-    # Load polymer universe and trim to start_time
+    # Load polymer universe
     polymer_universe = mda.Universe(polymer_topology_file, polymer_trajectory_file)
-    timestep = polymer_universe.trajectory.dt
-    start_frame = int(start_time / timestep)
+    polymer_timestep = polymer_universe.trajectory.dt
+    polymer_start_frame = int(start_time / polymer_timestep)
 
-    polymer_universe.trajectory[start_frame:]  # trim polymer frames to start_time
+    # Small tests
+    if api_timestep != polymer_timestep:
+        raise ValueError("Timesteps must be consistent - same simulation...")
+    if api_start_frame != polymer_start_frame:
+        raise ValueError("Start frames must coincide...")
+
     polymer_atom_selection = polymer_universe.select_atoms(f"name {polymer_atom_name}")
 
     rdf_values = []
@@ -165,8 +183,70 @@ def api_polymer_rdf(
             range=(0, max_range),
         )
         rdf_calc.run(
-            start=0, step=stride
+            start=polymer_start_frame, step=stride
         )  # start=0 because both universes are now aligned
+        rdf_values.append(rdf_calc.results.rdf)
+        if bins is None:
+            bins = rdf_calc.results.bins
+
+    return np.array(bins), np.array(rdf_values)
+
+
+def api_polymer_rdf_new(
+    topology_file,
+    trajectory_file,
+    api_residue_name,
+    simulation_information_filename,
+    polymer_topology_file,
+    polymer_trajectory_file,
+    polymer_atom_name,
+    api_atom_name,
+    start_time,
+    frame_strides,
+):
+    """Computes the radial distribution function between API COMs (NAP)
+    and a polymer reference atom (N1)."""
+
+    # --- Extract API COMs and save as npz ---
+    api_simulation_extractor(
+        topology_file=topology_file,
+        trajectory_file=trajectory_file,
+        api_residue_name=api_residue_name,
+        output_filename=simulation_information_filename,
+    )
+
+    # --- Build combined universe with polymer + API COMs ---
+    u = combined_universe(
+        polymer_topology_file,
+        polymer_trajectory_file,
+        simulation_information_filename,
+        polymer_atom_name=polymer_atom_name,
+        api_atom_name=api_atom_name,
+    )
+
+    # --- Figure out start frame properly ---
+    frame_spacing = u.trajectory.dt  # ps/frame
+    start_frame = int(start_time / frame_spacing)
+    if start_frame >= len(u.trajectory):
+        raise ValueError(
+            f"Start frame {start_frame} exceeds trajectory length {len(u.trajectory)}"
+        )
+
+    # --- Safe RDF cutoff (half smallest box length) ---
+    half_box_lengths = [min(ts.dimensions[:3]) / 2.0 for ts in u.trajectory]
+    max_range = min(half_box_lengths)
+
+    # --- Selections ---
+    api_sel = u.select_atoms(f"name {api_atom_name}0")  # first API COM atom
+    poly_sel = u.select_atoms(f"name {polymer_atom_name}0")  # first polymer atom
+
+    # --- Run RDF for each stride ---
+    rdf_values = []
+    bins = None
+    for stride in frame_strides:
+        rdf_calc = InterRDF(api_sel, poly_sel, nbins=75, range=(0, max_range))
+        rdf_calc.run(start=start_frame, step=stride)
+
         rdf_values.append(rdf_calc.results.rdf)
         if bins is None:
             bins = rdf_calc.results.bins
@@ -188,11 +268,21 @@ def rdf_plotter(rdf_bins, rdf_values, rdf_type, frame_strides):
     return
 
 
-def api_api_rdf_manual(simulation_information_filename, bin_width, instantaneous):
+def api_api_rdf_manual(
+    simulation_information_filename, bin_width, instantaneous, start_time
+):
     """Compute API-API rdf manually from saved centres of mass."""
 
-    api_coms, box_lengths = load_simulation(simulation_information_filename)
-    number_of_frames, number_of_molecules, _ = api_coms.shape
+    api_coms, box_lengths, api_timestep = load_simulation(
+        simulation_information_filename
+    )
+    _, number_of_molecules, _ = api_coms.shape
+    api_start_frame = int(start_time / api_timestep)
+
+    # Restrict to frames after start_time
+    api_coms = api_coms[api_start_frame:]
+    box_lengths = box_lengths[api_start_frame:]
+    number_of_frames = len(api_coms)
 
     # Safest cut-off: half the minimum box length for all frames
     half_box_lengths = np.min(box_lengths, axis=1) / 2.0
@@ -363,8 +453,9 @@ def polymer_api_rdf_manual(
     box_lengths = np.array(box_lengths)
     number_of_frames, number_of_polymer_atoms, _ = polymer_atom_positions.shape
 
-    # API centres of mass
-    api_coms, api_box_lengths = load_simulation(simulation_information_filename)
+    # API centres of mass after start frame
+    api_coms, _, _ = load_simulation(simulation_information_filename)
+    api_coms = api_coms[start_frame:]
     _, number_of_api, _ = api_coms.shape
 
     # Check if number of frames are consistent
