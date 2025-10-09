@@ -93,7 +93,7 @@ def msd_300k_plotter(msd_array, lagtime_array, is_dry):
         plt.xlabel("Time (ps)", fontsize=15)
         plt.ylabel(r"MSD (cm$^2$)", fontsize=15)
         plt.title(f"MSD {wet_label}")
-        plt.savefig(f"msd_300k_{i}_{wet_label}.png", dpi=300)
+        plt.savefig(f"msd_300k_{i}_{wet_label.lower()}.png", dpi=300)
         plt.show()
         plt.close()
 
