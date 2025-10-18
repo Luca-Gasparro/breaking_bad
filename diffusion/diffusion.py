@@ -10,7 +10,7 @@ from scipy.stats import linregress
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 
-def traj_organiser_300k(directory, is_dry):
+def traj_organiser(directory, is_dry):
     """Organises trajectory files numerically by the number in their name."""
 
     selector = "dry" if is_dry else "wet"
@@ -84,7 +84,7 @@ def msd_calculator(
     return np.array(msds, dtype=object), np.array(lagtimes, dtype=object)
 
 
-def msd_300k_plotter(msd_array, lagtime_array, is_dry):
+def msd_plotter(msd_array, lagtime_array, is_dry):
     """Plots the MSD curves relating to the temperature 300 K"""
     wet_label = "Dry" if is_dry else "Wet"
     for i, (lagtimes, msd_vals) in enumerate(zip(lagtime_array, msd_array), start=1):
@@ -100,7 +100,7 @@ def msd_300k_plotter(msd_array, lagtime_array, is_dry):
     return
 
 
-def diffusion_coefficients_300k(msd_array, lagtime_array, start_array_ps, end_array_ps):
+def diffusion_coefficients(msd_array, lagtime_array, start_array_ps, end_array_ps):
     """Calculates diffusion coefficients at 300 K for each given trajectory. Need to give
     the fitting windows determined by the start and end array. The end times cannot be greater than
     half the trajectory length due to fading statstics. This function should be used after
@@ -134,41 +134,16 @@ def diffusion_coefficients_300k(msd_array, lagtime_array, start_array_ps, end_ar
     return np.array(D), np.array(lagtime_end)
 
 
-def plot_diff_time_300k_inset(diff_array, lagtime_end_array, is_dry):
+def plot_diff_time(diff_array, lagtime_end_array, is_dry):
     """Plots diffusion against simulation time at 300 K, with an inset for last points."""
     wet_label = "Dry" if is_dry else "Wet"
-    fig, ax = plt.subplots(figsize=(10, 6))
+    _, ax = plt.subplots(figsize=(10, 6))
 
     # Main plot
     ax.plot(lagtime_end_array, diff_array, marker="o")
     ax.set_xlabel("Time (ps)", fontsize=20)
     ax.set_ylabel("Diffusion coefficient", fontsize=20)
     ax.tick_params(labelsize=20)
-
-    inset_ax = inset_axes(
-        ax,
-        width=5,
-        height=3,
-        loc="upper right",
-        bbox_to_anchor=(0.95, 0.9),
-        bbox_transform=ax.transAxes,
-        borderpad=0,
-    )
-    n_points = max(15, len(lagtime_end_array) // 10)
-    inset_ax.plot(lagtime_end_array[-n_points:], diff_array[-n_points:], marker="o")
-    inset_ax.set_title("Zoom (last points)", fontsize=10)
-
-    x_min, x_max = (
-        min(lagtime_end_array[-n_points:]),
-        max(lagtime_end_array[-n_points:]),
-    )
-    y_min, y_max = min(diff_array[-n_points:]), max(diff_array[-n_points:])
-
-    x_pad = 0.05 * (x_max - x_min)
-    y_pad = 0.05 * (y_max - y_min)
-
-    inset_ax.set_xlim(x_min - x_pad, x_max + x_pad)
-    inset_ax.set_ylim(y_min - y_pad, y_max + y_pad)
 
     plt.savefig(f"diffusion_vs_time_{wet_label.lower()}.png", bbox_inches="tight")
     return
