@@ -7,7 +7,6 @@ import MDAnalysis as mda
 import MDAnalysis.analysis.msd as msd
 import matplotlib.pyplot as plt
 from scipy.stats import linregress
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 
 def traj_organiser(directory, is_dry):
@@ -93,7 +92,7 @@ def msd_plotter(msd_array, lagtime_array, is_dry):
         plt.xlabel("Time (ps)", fontsize=15)
         plt.ylabel(r"MSD (cm$^2$)", fontsize=15)
         plt.title(f"MSD {wet_label}")
-        plt.savefig(f"msd_300k_{i}_{wet_label.lower()}.png", dpi=300)
+        plt.savefig(f"msd_{i}_{wet_label.lower()}.png", dpi=300)
         plt.show()
         plt.close()
 
