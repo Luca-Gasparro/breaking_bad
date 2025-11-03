@@ -43,5 +43,8 @@ def energy_minimisation_pe(polymer_xvg, api_polymer_xvg, wet_api_polymer_xvg, bo
         ax.grid(True, linestyle=":", linewidth=0.5)
     ax3.set_xlabel("Minimisation Step")
     plt.tight_layout()
-    plt.savefig(f"energy_minimisation_{box_size}_ang.png", dpi=300)
+    plt.savefig(
+        f"/storage/chem/phuqdw/breaking_bad/sim_analysis/energy_min/energy_minimisation_{box_size}_ang.png",
+        dpi=300,
+    )
     return
