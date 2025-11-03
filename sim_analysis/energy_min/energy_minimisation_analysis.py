@@ -1,4 +1,8 @@
 # Analysing energy minimisiation for each naproxen PVP configuration
+import sys
+import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import analysis
 
 # 100 angstrom configuration...
