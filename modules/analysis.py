@@ -87,7 +87,7 @@ def npt_analysis(
     # If no output folder is provided, use the current working directory
     if output_dir is None:
         output_dir = os.getcwd()
-    os.makedirs(output_dir, exist_ok=True)  # ensure folder exists
+    os.makedirs(output_dir, exist_ok=True)
 
     # Obtain mean box in the length (cubic box so component doesn't matter)
     mean_box_length = average_box_length(
