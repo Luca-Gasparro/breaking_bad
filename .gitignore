@@ -10,3 +10,5 @@
 **/*.xtc_offsets.lock
 
 **/*.ipynb_checkpoints
+
+**/*.npz
