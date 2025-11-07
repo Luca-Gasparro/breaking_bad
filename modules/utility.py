@@ -78,25 +78,22 @@ def polymer_atom_extraction(polymer_topology_file, polymer_trajectory_file, atom
     return polymer_traj, polymer_atom_selection, polymer_timestep
 
 
-def box_volume(topology_file, trajectory_file):
-    """Extracts box-volumes to help make sense of the RDFs by investigating bos fluctuations."""
-    # Use MDAnalysis to load in the trajectories
-    traj = mda.Universe(topology_file, trajectory_file)
+def parse_mdp(mdp_file):
+    """Reads a GROMACS `.mdp` file and extracts parameter values, storing them in a dictionary."""
 
-    # Extract number of frames
-    number_of_frames = len(traj.trajectory)
+    parameters = {}
+    # Open the file and read line by line
+    with open(mdp_file) as fh:
+        for line in fh:
+            # Take only part before semicolon aand strip surrounding white space
+            line = line.split(";", 1)[0].strip()
+            # Skip empty or comment only lines
+            if not line:
+                continue
 
-    # Initialise the box length array
-    box_lengths = np.zeros((number_of_frames, 3))
+            # Separate parameters into dictionary key and value pair
+            if "=" in line:
+                key, value = line.split("=", 1)
+                parameters[key.strip()] = value.strip()
 
-    # Accumulate box lengths for frames in the trajectory
-    for i, ts in enumerate(traj.trajectory):
-        box_lengths[i] = ts.dimensions[:3]
-
-    box_volumes = np.prod(box_lengths, axis=1)
-    # Obtain simulation time
-    all_times = []
-    for ts in traj.trajectory:
-        all_times.append(ts.time)
-
-    return box_volumes, all_times
+    return parameters

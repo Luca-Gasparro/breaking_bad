@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import os
 import MDAnalysis as mda
 
+from .utility import parse_mdp
+
 
 def energy_minimisation_pe(
     polymer_xvg, api_polymer_xvg, wet_api_polymer_xvg, box_size, output_dir=None
@@ -79,6 +81,7 @@ def npt_analysis(
     pressure_xvg,
     topology_file,
     trajectory_file,
+    npt_mdp_file,
     output_dir=None,
 ):
     """Calculates the potential energy, the temperature and the pressure evolution in an NPT
@@ -93,9 +96,13 @@ def npt_analysis(
     mean_box_length = average_box_length(
         topology_file=topology_file, trajectory_file=trajectory_file
     )
-    # Construct full path for the output figure
 
-    output_path = os.path.join(output_dir, f"npt_{mean_box_length}_ang.png")
+    # Extract pressure for saving and plotting purposes
+    npt_params = parse_mdp(mdp_file=npt_mdp_file)
+    pressure = npt_params["ref-p"]
+
+    # Construct full path for the output figure
+    output_path = os.path.join(output_dir, f"npt_{pressure}_bars.png")
 
     # Extract the data from each .xvg file - potential energy, temperature and pressure
     npt_time, npt_potential = np.loadtxt(energy_xvg, comments=("#", "@"), unpack=True)
@@ -118,7 +125,7 @@ def npt_analysis(
     fig, (ax1, ax2, ax3) = plt.subplots(
         3, 1, figsize=(6, 8), sharex=False, sharey=False
     )
-    fig.suptitle(f"NPT analysis {mean_box_length} $\\AA$")
+    fig.suptitle(f"NPT analysis ({pressure} bars, {mean_box_length:.2f} $\\AA$)")
     ax1.plot(npt_time, npt_potential, label="Potential energy")
     ax1.set_ylabel("Energy (kJ/mol)")
     ax1.legend()
