@@ -22,36 +22,3 @@ analysis.npt_analysis(
     npt_mdp_file="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/params/02npt.mdp",
     output_dir="/storage/chem/phuqdw/breaking_bad/sim_analysis/npt/config_110ang",
 )
-
-# 0.3 GPa
-analysis.npt_analysis(
-    energy_xvg="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/npt_nap_pvp_pot03.xvg",
-    temperature_xvg="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/npt_nap_pvp_temp03.xvg",
-    pressure_xvg="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/npt_nap_pvp_pressure03.xvg",
-    topology_file="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/wet_nap_pvp_npt03.tpr",
-    trajectory_file="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/wet_nap_pvp_npt03_trim.xtc",
-    npt_mdp_file="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/params/03npt.mdp",
-    output_dir="/storage/chem/phuqdw/breaking_bad/sim_analysis/npt/config_110ang",
-)
-
-# 0.4 GPa
-analysis.npt_analysis(
-    energy_xvg="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/npt_nap_pvp_pot04.xvg",
-    temperature_xvg="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/npt_nap_pvp_temp04.xvg",
-    pressure_xvg="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/npt_nap_pvp_pressure04.xvg",
-    topology_file="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/wet_nap_pvp_npt04.tpr",
-    trajectory_file="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/wet_nap_pvp_npt04_trim.xtc",
-    npt_mdp_file="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/params/04npt.mdp",
-    output_dir="/storage/chem/phuqdw/breaking_bad/sim_analysis/npt/config_110ang",
-)
-
-# 0.5 GPa
-analysis.npt_analysis(
-    energy_xvg="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/npt_nap_pvp_pot05.xvg",
-    temperature_xvg="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/npt_nap_pvp_temp05.xvg",
-    pressure_xvg="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/npt_nap_pvp_pressure05.xvg",
-    topology_file="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/wet_nap_pvp_npt05.tpr",
-    trajectory_file="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/config_110ang/wet_nap_pvp_npt05_trim.xtc",
-    npt_mdp_file="/storage/chem/phuqdw/breaking_bad/gromacs/npt_compression/params/05npt.mdp",
-    output_dir="/storage/chem/phuqdw/breaking_bad/sim_analysis/npt/config_110ang",
-)
